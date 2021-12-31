@@ -7,7 +7,7 @@ use nom::{
     character::complete::{self, anychar, digit1, none_of, one_of},
     combinator::map,
     error::ErrorKind,
-    multi::{many0, many1, separated_list0},
+    multi::{many0, separated_list0, separated_list1},
     sequence::{delimited, preceded, tuple},
     IResult,
 };
@@ -108,7 +108,10 @@ fn list(i: &str) -> IResult<&str, SchemeParserValue> {
         map(
             delimited(
                 complete::char('('),
-                tuple((many1(datum), preceded(tag(" . "), datum))),
+                tuple((
+                    separated_list1(tag(" "), datum),
+                    preceded(tag(" . "), datum),
+                )),
                 complete::char(')'),
             ),
             |(a, b)| {

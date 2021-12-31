@@ -1,8 +1,10 @@
-pub mod scheme;
+use std::env;
+
 pub mod parse;
+pub mod scheme;
 
 fn main() {
-    let test = "hello-world";
+    let input = env::args().nth(1).unwrap();
 
-    println!("{:?}", parse::parse(test));
+    println!("{:?}", parse::parse(&input));
 }

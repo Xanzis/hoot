@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use crate::scheme::SchemeParserValue;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -11,6 +10,54 @@ use nom::{
     sequence::{delimited, preceded, tuple},
     IResult,
 };
+
+// scheme values as produced by the hoot parser
+
+#[derive(Clone, Debug)]
+pub enum SchemeParserValue {
+    Symbol(String),
+    IntNumber(isize),
+    Boolean(bool),
+    String(String),
+    Character(char),
+    List(Vec<SchemeParserValue>),
+}
+
+impl SchemeParserValue {
+    pub fn symbol<T: ToString>(x: T) -> Self {
+        Self::Symbol(x.to_string())
+    }
+
+    pub fn int_number(x: isize) -> Self {
+        Self::IntNumber(x)
+    }
+
+    pub fn boolean(x: bool) -> Self {
+        Self::Boolean(x)
+    }
+
+    pub fn character(x: char) -> Self {
+        Self::Character(x)
+    }
+
+    pub fn string<T: IntoIterator<Item = char>>(x: T) -> Self {
+        Self::String(x.into_iter().collect())
+    }
+
+    pub fn list(x: Vec<SchemeParserValue>) -> Self {
+        Self::List(x)
+    }
+
+    pub fn pair(x: SchemeParserValue, y: SchemeParserValue) -> Self {
+        Self::List(vec![x, y])
+    }
+
+    pub fn improper_list(mut x: Vec<SchemeParserValue>, y: SchemeParserValue) -> Self {
+        // scheme spec includes this form
+        x.push(y);
+        Self::List(x)
+    }
+}
 
 pub fn parse(i: &str) -> Result<SchemeParserValue, Box<dyn Error + '_>> {
     let (rem, dat) = datum(i)?;
@@ -35,7 +82,7 @@ fn identifier(i: &str) -> IResult<&str, SchemeParserValue> {
     // (is there a performance penalty to reconstructing these functions on each call?)
 
     if let Ok((rem, dat)) = alt::<_, _, (&str, ErrorKind), _>((tag("+"), tag("-"), tag("...")))(i) {
-        Ok((rem, SchemeParserValue::atom(dat)))
+        Ok((rem, SchemeParserValue::symbol(dat)))
     } else {
         let initial = one_of("abcdefghijklmnopqrstuvwxyz!$%&*/:<=>?~_^");
         let subsequent = one_of("abcdefghijklmnopqrstuvwxyz!$%&*/:<=>?~_^0123456789.+-");
@@ -47,7 +94,7 @@ fn identifier(i: &str) -> IResult<&str, SchemeParserValue> {
             res.push(c);
         }
 
-        Ok((rem, SchemeParserValue::atom(res)))
+        Ok((rem, SchemeParserValue::symbol(res)))
     }
 }
 
@@ -118,7 +165,7 @@ fn list(i: &str) -> IResult<&str, SchemeParserValue> {
                 if a.len() == 1 {
                     SchemeParserValue::pair(a[0].clone(), b)
                 } else {
-                    SchemeParserValue::left_nested(a, b)
+                    SchemeParserValue::improper_list(a, b)
                 }
             },
         ),

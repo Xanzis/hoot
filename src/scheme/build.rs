@@ -45,15 +45,7 @@ fn build_value(env: &mut Environment, input: SchemeParserValue) -> ObjectReferen
 fn build_list(env: &mut Environment, input: Vec<SchemeParserValue>) -> ObjectReference {
 	// populate the environment with a list
 	// TODO shouldn't need to allocate a new Nil for every list
-	let nil_ref = env.push_object(Object::Nil);
-	let mut cur_ref = nil_ref;
+	let orefs = input.into_iter().map(|val| build_value(env, val)).collect();
 
-	for val in input.into_iter().rev() {
-		let oref = build_value(env, val);
-		// push a cons of the new object and the list tail (cur_ref)
-		let new_ref = env.push_object(Object::Cons(oref, cur_ref));
-		cur_ref = new_ref;
-	}
-
-	cur_ref
+	env.push_list(orefs)
 }

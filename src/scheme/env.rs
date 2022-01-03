@@ -129,6 +129,22 @@ impl Environment {
 		// TODO: proper error types / variants
 		Err(format!("undefined identifier: {}", self.find_symbol(sym)))
 	}
+
+	pub fn push_list(&mut self, vals: Vec<ObjectReference>) -> ObjectReference {
+		// allocate and fill a cons list, returning a reference to the head
+		// populate the environment with a list
+		// TODO shouldn't need to allocate a new Nil for every list
+		let nil_ref = self.push_object(Object::Nil);
+		let mut cur_ref = nil_ref;
+
+		for oref in vals.into_iter().rev() {
+			// push a cons of the new object and the list tail (cur_ref)
+			let new_ref = self.push_object(Object::Cons(oref, cur_ref));
+			cur_ref = new_ref;
+		}
+
+		cur_ref
+	}
 }
 
 impl fmt::Display for Environment {
